@@ -16,13 +16,13 @@ export class NoticeService {
 async create(createNoticeDto: CreateNoticeDto): Promise<Notice> {
   const savedNotice = await this.noticeRepo.save(createNoticeDto);
 
-  const message = `🧪 *NEW NOTICE ALERT*\n\n*Title:* ${savedNotice.title}\n*Content:* ${savedNotice.content}`;
+  const message = ` *NEW NOTICE ALERT*\n\n*Title:* ${savedNotice.title}\n*Content:* ${savedNotice.content}`;
 
-  // 1. Define your list of groups here
-  const targetGroups = ['Chemistry', '.Net Framework Project',];
+  //  Define your list of groups here
+  const targetGroups = ['Chemistry', '.Net Framework Project'];
 
-  // 2. Loop through the groups and send the message to each
-  // We use map + Promise.all so they send in parallel (faster)
+  //  Loop through the groups and send the message to each
+  //  use map + Promise.all so they send in parallel (faster)
   try {
     await Promise.all(
       targetGroups.map(groupName => 

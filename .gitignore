@@ -54,3 +54,15 @@ pids
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+
+# Ignore WhatsApp session data
+.wwebjs_auth/
+.wwebjs_cache/
+
+# Ignore local environment variables
+.env
+
+# Ignore dependencies and build files
+node_modules/
+dist/

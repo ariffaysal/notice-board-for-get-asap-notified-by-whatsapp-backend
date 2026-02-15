@@ -1,0 +1,6 @@
+2026/02/15-14:35:47.864 7fa0 Reusing MANIFEST C:\Users\User\OneDrive\Desktop\demo\bd\my-backendnpm\.wwebjs_auth\session\Default\Local Storage\leveldb/MANIFEST-000001
+2026/02/15-14:35:47.874 7fa0 Recovering log #4
+2026/02/15-14:35:47.880 7fa0 Reusing old log C:\Users\User\OneDrive\Desktop\demo\bd\my-backendnpm\.wwebjs_auth\session\Default\Local Storage\leveldb/000004.log 
+2026/02/15-14:36:47.894 2618 Level-0 table #8: started
+2026/02/15-14:36:47.919 2618 Level-0 table #8: 14269 bytes OK
+2026/02/15-14:36:47.924 2618 Delete type=0 #4

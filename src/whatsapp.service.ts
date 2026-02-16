@@ -43,7 +43,6 @@ export class WhatsappService implements OnModuleInit {
           if (!isBotAlert) {
             let displayName = '';
 
-            // 1. Try to get a real Name first
             try {
               const contactId = msg.author || msg.from;
               if (contactId) {
@@ -51,10 +50,8 @@ export class WhatsappService implements OnModuleInit {
                 displayName = contact.pushname || contact.name;
               }
             } catch (e) {
-              // Failed to fetch contact name, moving to cleanup logic
             }
 
-            // 2. Cleanup Logic: If no name, turn "273516452663526:23@lid" into "+273516452663526"
             if (!displayName) {
               const rawId = msg.author || msg.from || '';
               const digits = rawId.split('@')[0].split(':')[0];

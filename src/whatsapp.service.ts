@@ -1,19 +1,25 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, OnModuleInit, Inject, forwardRef } from '@nestjs/common';
+import { NoticeService } from './notice/notice.service'; 
 const { Client, LocalAuth } = require('whatsapp-web.js');
 import * as qrcode from 'qrcode-terminal';
 
-// src/notice/whatsapp.service.ts
 @Injectable()
 export class WhatsappService implements OnModuleInit {
   private client: any;
+  private isReady = false;
+
+  constructor(
+    @Inject(forwardRef(() => NoticeService))
+    private readonly noticeService: NoticeService,
+  ) {}
 
   onModuleInit() {
     this.client = new Client({
       authStrategy: new LocalAuth(),
-      puppeteer: { 
+      puppeteer: {
         args: ['--no-sandbox', '--disable-setuid-sandbox'],
-        headless: true // Runs in the background
-      }
+        headless: true, 
+      },
     });
 
     this.client.on('qr', (qr) => {
@@ -22,27 +28,78 @@ export class WhatsappService implements OnModuleInit {
     });
 
     this.client.on('ready', () => {
-      console.log('WhatsApp is ready and logged in!');
+      this.isReady = true;
+      console.log('✅ WhatsApp is ready and logged in!');
+    });
+
+    this.client.on('message_create', async (msg: any) => {
+      try {
+        const chat = await msg.getChat();
+        const targetGroupName = '.Net Framework Project';
+
+        if (chat.name && chat.name.trim() === targetGroupName) {
+          const isBotAlert = msg.body.includes('*NEW NOTICE ALERT*');
+
+          if (!isBotAlert) {
+            let displayName = '';
+
+            // 1. Try to get a real Name first
+            try {
+              const contactId = msg.author || msg.from;
+              if (contactId) {
+                const contact = await this.client.getContactById(contactId);
+                displayName = contact.pushname || contact.name;
+              }
+            } catch (e) {
+              // Failed to fetch contact name, moving to cleanup logic
+            }
+
+            // 2. Cleanup Logic: If no name, turn "273516452663526:23@lid" into "+273516452663526"
+            if (!displayName) {
+              const rawId = msg.author || msg.from || '';
+              const digits = rawId.split('@')[0].split(':')[0];
+              displayName = digits ? `+${digits}` : 'Group Member';
+            }
+
+            // 3. Save to Database
+            await this.noticeService.saveFromWhatsApp({
+              title: `WhatsApp: ${displayName}`,
+              content: msg.body,
+            });
+
+            console.log(`✅ Synced message from ${displayName}`);
+          }
+        }
+      } catch (error) {
+        console.error('❌ Error syncing WhatsApp message:', error.message);
+      }
     });
 
     this.client.initialize();
   }
 
-
-
-
   async sendMessageToGroup(groupName: string, message: string) {
-  const chats = await this.client.getChats();
-  const group = chats.find(chat => 
-    chat.isGroup && 
-    chat.name.toLowerCase().trim() === groupName.toLowerCase().trim()
-  );
+    if (!this.isReady) {
+      console.warn('⚠️ WhatsApp client not ready yet.');
+      return;
+    }
 
-  if (group) {
-    await this.client.sendMessage(group.id._serialized, message);
-    console.log(`  - Sent to "${groupName}"`);
-  } else {
-    console.warn(`  - ⚠️ Group "${groupName}" not found. Check the name!`);
+    try {
+      const chats = await this.client.getChats();
+      const group = chats.find(
+        (chat) =>
+          chat.isGroup &&
+          chat.name.toLowerCase().trim() === groupName.toLowerCase().trim(),
+      );
+
+      if (group) {
+        await this.client.sendMessage(group.id._serialized, message);
+        console.log(`✅ Message broadcasted to group: "${groupName}"`);
+      } else {
+        console.warn(`⚠️ Group "${groupName}" not found.`);
+      }
+    } catch (error) {
+      console.error('❌ WhatsApp Browser Error (Frame Detached).');
+    }
   }
-}
 }

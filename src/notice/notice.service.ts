@@ -1,43 +1,45 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Notice } from './entities/notice.entity';
 import { CreateNoticeDto } from './dto/create-notice.dto';
-import { WhatsappService } from '../whatsapp.service'; // Added this
+import { WhatsappService } from '../whatsapp.service'; 
 
 @Injectable()
 export class NoticeService {
   constructor(
     @InjectRepository(Notice)
     private readonly noticeRepo: Repository<Notice>,
-    private readonly whatsappService: WhatsappService, // Injected the WhatsApp service
+    
+    // Use forwardRef to avoid circular dependency issues
+    @Inject(forwardRef(() => WhatsappService))
+    private readonly whatsappService: WhatsappService, 
   ) {}
 
-async create(createNoticeDto: CreateNoticeDto): Promise<Notice> {
-  const savedNotice = await this.noticeRepo.save(createNoticeDto);
+async saveFromWhatsApp(data: { title: string; content: string }): Promise<Notice> {
+  return await this.noticeRepo.save({
+    title: data.title,
+    content: data.content,
+    category: 'WhatsApp', 
+  });
+}
+  // --- This sends notices FROM Browser TO WhatsApp ---
+  async create(createNoticeDto: CreateNoticeDto): Promise<Notice> {
+    const savedNotice = await this.noticeRepo.save(createNoticeDto);
 
-  const message = ` *NEW NOTICE ALERT*\n\n*Title:* ${savedNotice.title}\n*Content:* ${savedNotice.content}`;
+    const message = ` *NEW NOTICE ALERT*\n\n*Title:* ${savedNotice.title}\n*Content:* ${savedNotice.content}`;
+    const targetGroups = ['.Net Framework Project'];
 
-  //  Define your list of groups here
-  const targetGroups = ['Chemistry', '.Net Framework Project'];
+    targetGroups.forEach(groupName => {
+      this.whatsappService.sendMessageToGroup(groupName, message)
+        .then(() => console.log(`✅ Notice broadcasted to ${groupName}`))
+        .catch(error => console.error(`❌ WhatsApp failed for ${groupName}:`, error));
+    });
 
-  //  Loop through the groups and send the message to each
-  //  use map + Promise.all so they send in parallel (faster)
-  try {
-    await Promise.all(
-      targetGroups.map(groupName => 
-        this.whatsappService.sendMessageToGroup(groupName, message)
-      )
-    );
-    console.log(`✅ Notice broadcasted to ${targetGroups.length} groups.`);
-  } catch (error) {
-    console.error('❌ One or more WhatsApp messages failed:', error);
+    return savedNotice;
   }
 
-  return savedNotice;
-}
-  
-
+  // ... rest of your methods (findAll, findOne, etc.)
   async findAll(): Promise<Notice[]> {
     return await this.noticeRepo.find({ order: { createdAt: 'DESC' } });
   }

@@ -6,16 +6,19 @@ export class Notice {
   id: number;
 
   @Column()
-  title: string;
+  name: string;
 
+  
   @Column({ type: 'text' })
-  content: string;
+  message: string;
 
   @Column({ default: 'General' })
   category: string;
 
-  @Column({ nullable: true })
-  groupName: string; 
+
+@Column({ nullable: true })
+groupName: string;
+
 
   @CreateDateColumn()
   createdAt: Date;

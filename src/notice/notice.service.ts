@@ -5,7 +5,6 @@ import { Notice } from './entities/notice.entity';
 import { CreateNoticeDto } from './dto/create-notice.dto';
 import { WhatsappService } from '../whatsapp.service'; 
 
-
 @Injectable()
 export class NoticeService {
 
@@ -17,51 +16,71 @@ export class NoticeService {
     private readonly whatsappService: WhatsappService, 
   ) {}
 
-
-async saveFromWhatsApp(dto: CreateNoticeDto) { 
-  const notice = this.noticeRepo.create(dto);
-  notice.category = 'WhatsApp';
-  return await this.noticeRepo.save(notice);
-}
-
-
-async create(createNoticeDto: CreateNoticeDto): Promise<Notice> {
-  const savedNotice = await this.noticeRepo.save(createNoticeDto);
-
-  const message = `*NEW NOTICE ALERT*\n\n*Title:* ${savedNotice.title}\n*Content:* ${savedNotice.content}`;
-  
-  if (savedNotice.groupName) {
-    this.whatsappService.sendMessageToGroup(savedNotice.groupName, message)
-      .then(() => console.log(`✅ Notice broadcasted to ${savedNotice.groupName}`))
-      .catch(e => console.error(e));
+  /**
+   * Handles incoming messages from WhatsApp sync
+   */
+  async saveFromWhatsApp(dto: CreateNoticeDto) {
+    const notice = this.noticeRepo.create({
+      name: dto.title,       
+      message: dto.content,  
+      groupName: dto.groupName, 
+      category: 'WhatsApp',
+    });
+    return await this.noticeRepo.save(notice);
   }
 
-  return savedNotice;
-}
+  /**
+   * Handles manual posts from the Dashboard
+   */
+  async create(createNoticeDto: CreateNoticeDto): Promise<Notice> {
+    // FIX: Map DTO (title/content) to Entity (name/message) before saving
+    const noticeInstance = this.noticeRepo.create({
+      name: createNoticeDto.title,
+      message: createNoticeDto.content,
+      groupName: createNoticeDto.groupName,
+      category: createNoticeDto.category || 'General'
+    });
 
+    const savedNotice = await this.noticeRepo.save(noticeInstance);
 
-  
+    // Prepare WhatsApp Message using the correct property names
+    const message = `*NEW NOTICE ALERT*\n\n*Title:* ${savedNotice.name}\n*Content:* ${savedNotice.message}`;
+    
+    if (savedNotice.groupName) {
+      this.whatsappService.sendMessageToGroup(savedNotice.groupName, message)
+        .then(() => console.log(`✅ Notice broadcasted to ${savedNotice.groupName}`))
+        .catch(e => console.error('WhatsApp Broadcast Error:', e.message));
+    }
 
-async findAll() {
-  const data = await this.noticeRepo.find({ order: { id: 'DESC' } });
-  return data.map(notice => ({
-    id: notice.id,
-    name: notice.title,      
-    message: notice.content, 
-    category: notice.category,
-    createdAt: notice.createdAt
-  }));
-}
+    return savedNotice;
+  }
+
+  async findAll() {
+    const data = await this.noticeRepo.find({ order: { id: 'DESC' } });
+    return data.map(notice => ({
+      id: notice.id,
+      name: notice.name,      
+      message: notice.message, 
+      groupName: notice.groupName, 
+      category: notice.category,
+      createdAt: notice.createdAt
+    }));
+  }
 
   async findOne(id: number): Promise<Notice> {
-    const notice = await this.noticeRepo.findOneBy({ id });
+    const notice = await this.noticeRepo.findOneBy({ id: id as any }); 
     if (!notice) throw new NotFoundException(`Notice #${id} not found`);
     return notice;
   }
 
   async update(id: number, updateData: Partial<CreateNoticeDto>): Promise<Notice> {
     const notice = await this.findOne(id);
-    Object.assign(notice, updateData);
+    
+    if (updateData.title) notice.name = updateData.title;
+    if (updateData.content) notice.message = updateData.content;
+    if (updateData.groupName) notice.groupName = updateData.groupName;
+    if (updateData.category) notice.category = updateData.category;
+
     return await this.noticeRepo.save(notice);
   }
 

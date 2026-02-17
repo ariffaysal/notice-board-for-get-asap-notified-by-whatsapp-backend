@@ -36,7 +36,6 @@ export class WhatsappService implements OnModuleInit {
       try {
         const chat = await msg.getChat();
         
-        // Updated to include 'Chemistry'
         const targetGroupNames = ['.Net Framework Project', 'Chemistry'];
 
         if (chat.name && targetGroupNames.includes(chat.name.trim())) {
@@ -52,7 +51,7 @@ export class WhatsappService implements OnModuleInit {
                 displayName = contact.pushname || contact.name;
               }
             } catch (e) {
-              // Fallback if contact fetch fails
+
             }
 
             if (!displayName) {
@@ -61,11 +60,10 @@ export class WhatsappService implements OnModuleInit {
               displayName = digits ? `+${digits}` : 'Group Member';
             }
 
-            // --- KEY CHANGE: PASSING THE GROUP NAME ---
             await this.noticeService.saveFromWhatsApp({
               title: `WhatsApp: ${displayName}`,
               content: msg.body,
-              groupName: chat.name, // Now storing which group it came from
+              groupName: chat.name,
             });
 
             console.log(`✅ Synced message from ${displayName} in [${chat.name}]`);

@@ -19,12 +19,13 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "clear-session": "rm -rf .wwebjs_auth",
-  "start:new-user": "npm run clear-session && npm run start:dev"
+    "start:new-user": "npm run clear-session && npm run start:dev"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
     "@nestjs/core": "^11.0.1",
     "@nestjs/platform-express": "^11.0.1",
+    "@nestjs/swagger": "^11.2.6",
     "@nestjs/typeorm": "^11.0.0",
     "axios": "^1.13.5",
     "pg": "^8.18.0",

@@ -1,14 +1,28 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  app.enableCors(); 
-  await app.listen(3000);
+  app.enableCors();
+
+  const config = new DocumentBuilder()
+    .setTitle('Client Notice API')
+    .setDescription('API for WhatsApp Sync and Notice Management')
+    .setVersion('1.0')
+    .addTag('notices')
+    .build();
+    
+  const document = SwaggerModule.createDocument(app, config);
+  
+  SwaggerModule.setup('api', app, document);
+
+  await app.listen(3001);
+  console.log(`🚀 API is running on: http://localhost:3001/notices`);
+  console.log(`📖 Documentation available at: http://localhost:3001/api`);
 }
 bootstrap();
-
 
 /*
 
@@ -26,4 +40,6 @@ The Delivery: The WhatsappService uses a headless browser (Puppeteer) to "type" 
 
 scanner guy save the name to a number like 123456789 to arif then it will  be shown as arif in the group instead of 123456789. if the name is not saved then it will show the number like +123456789 in the group.
 
+
+use swagger to document your API endpoints. This will help you and other developers understand how to interact with your backend.
 */

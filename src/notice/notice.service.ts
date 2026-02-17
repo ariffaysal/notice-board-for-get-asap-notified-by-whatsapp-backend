@@ -39,10 +39,17 @@ async saveFromWhatsApp(data: { title: string; content: string }): Promise<Notice
     return savedNotice;
   }
 
-  // ... rest of your methods (findAll, findOne, etc.)
-  async findAll(): Promise<Notice[]> {
-    return await this.noticeRepo.find({ order: { createdAt: 'DESC' } });
-  }
+
+async findAll() {
+  const data = await this.noticeRepo.find({ order: { id: 'DESC' } });
+  return data.map(notice => ({
+    id: notice.id,
+    name: notice.title,      
+    message: notice.content, 
+    category: notice.category,
+    createdAt: notice.createdAt
+  }));
+}
 
   async findOne(id: number): Promise<Notice> {
     const notice = await this.noticeRepo.findOneBy({ id });

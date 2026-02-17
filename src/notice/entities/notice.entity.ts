@@ -14,9 +14,13 @@ export class Notice {
   @Column({ default: 'General' })
   category: string;
 
+  @Column({ nullable: true })
+  groupName: string; 
+
   @CreateDateColumn()
   createdAt: Date;
 
   @UpdateDateColumn()
   updatedAt: Date;
+  
 }

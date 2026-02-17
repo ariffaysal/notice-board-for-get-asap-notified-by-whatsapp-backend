@@ -35,9 +35,11 @@ export class WhatsappService implements OnModuleInit {
     this.client.on('message_create', async (msg: any) => {
       try {
         const chat = await msg.getChat();
-        const targetGroupName = '.Net Framework Project';
+        
+        // Updated to include 'Chemistry'
+        const targetGroupNames = ['.Net Framework Project', 'Chemistry'];
 
-        if (chat.name && chat.name.trim() === targetGroupName) {
+        if (chat.name && targetGroupNames.includes(chat.name.trim())) {
           const isBotAlert = msg.body.includes('*NEW NOTICE ALERT*');
 
           if (!isBotAlert) {
@@ -50,6 +52,7 @@ export class WhatsappService implements OnModuleInit {
                 displayName = contact.pushname || contact.name;
               }
             } catch (e) {
+              // Fallback if contact fetch fails
             }
 
             if (!displayName) {
@@ -58,13 +61,14 @@ export class WhatsappService implements OnModuleInit {
               displayName = digits ? `+${digits}` : 'Group Member';
             }
 
-            // 3. Save to Database
+            // --- KEY CHANGE: PASSING THE GROUP NAME ---
             await this.noticeService.saveFromWhatsApp({
               title: `WhatsApp: ${displayName}`,
               content: msg.body,
+              groupName: chat.name, // Now storing which group it came from
             });
 
-            console.log(`✅ Synced message from ${displayName}`);
+            console.log(`✅ Synced message from ${displayName} in [${chat.name}]`);
           }
         }
       } catch (error) {
@@ -75,6 +79,9 @@ export class WhatsappService implements OnModuleInit {
     this.client.initialize();
   }
 
+  /**
+   * Used when you "Broadcast" from the dashboard
+   */
   async sendMessageToGroup(groupName: string, message: string) {
     if (!this.isReady) {
       console.warn('⚠️ WhatsApp client not ready yet.');
@@ -96,20 +103,20 @@ export class WhatsappService implements OnModuleInit {
         console.warn(`⚠️ Group "${groupName}" not found.`);
       }
     } catch (error) {
-      console.error('❌ WhatsApp Browser Error (Frame Detached).');
+      console.error('❌ WhatsApp Send Error:', error.message);
     }
   }
 
-
-async sendReply(phoneNumber: string, message: string) {
-  try {
-    const formattedId = phoneNumber.includes('@') ? phoneNumber : `${phoneNumber}@s.whatsapp.net`;
-    await this.client.sendMessage(formattedId, message);
-    console.log(`✅ Reply sent to ${phoneNumber}`);
-  } catch (error) {
-    console.error('❌ Failed to send WhatsApp reply:', error.message);
+  /**
+   * Used for direct replies if needed
+   */
+  async sendReply(phoneNumber: string, message: string) {
+    try {
+      const formattedId = phoneNumber.includes('@') ? phoneNumber : `${phoneNumber}@c.us`;
+      await this.client.sendMessage(formattedId, message);
+      console.log(`✅ Reply sent to ${phoneNumber}`);
+    } catch (error) {
+      console.error('❌ Failed to send WhatsApp reply:', error.message);
+    }
   }
-}
-
-
 }

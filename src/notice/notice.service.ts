@@ -5,13 +5,14 @@ import { Notice } from './entities/notice.entity';
 import { CreateNoticeDto } from './dto/create-notice.dto';
 import { WhatsappService } from '../whatsapp.service'; 
 
+
 @Injectable()
 export class NoticeService {
+
   constructor(
     @InjectRepository(Notice)
-    private readonly noticeRepo: Repository<Notice>,
+    private readonly noticeRepo: Repository<Notice>, 
     
-    // Use forwardRef to avoid circular dependency issues
     @Inject(forwardRef(() => WhatsappService))
     private readonly whatsappService: WhatsappService, 
   ) {}
@@ -23,7 +24,6 @@ async saveFromWhatsApp(data: { title: string; content: string }): Promise<Notice
     category: 'WhatsApp', 
   });
 }
-  // --- This sends notices FROM Browser TO WhatsApp ---
   async create(createNoticeDto: CreateNoticeDto): Promise<Notice> {
     const savedNotice = await this.noticeRepo.save(createNoticeDto);
 
@@ -59,5 +59,9 @@ async saveFromWhatsApp(data: { title: string; content: string }): Promise<Notice
   async remove(id: number): Promise<void> {
     const result = await this.noticeRepo.delete(id);
     if (result.affected === 0) throw new NotFoundException(`Notice #${id} not found`);
+  }
+
+  async deleteAll() {
+    return await this.noticeRepo.clear();
   }
 }

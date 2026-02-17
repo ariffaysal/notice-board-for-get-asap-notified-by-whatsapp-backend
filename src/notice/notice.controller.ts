@@ -28,8 +28,14 @@ export class NoticeController {
     return this.noticeService.update(id, updateData);
   }
 
-  @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.noticeService.remove(id);
-  }
+@Delete('clear-all')
+async removeAll() {
+  await this.noticeService.deleteAll();
+  return { message: "All deleted" };
+}
+
+@Delete(':id')
+async remove(@Param('id') id: string) {
+  return this.noticeService.remove(+id); 
+}
 }

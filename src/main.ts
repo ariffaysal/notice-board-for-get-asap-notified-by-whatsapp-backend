@@ -23,4 +23,7 @@ The Persistence (Database): Your NoticeService receives the data and uses the Ty
 The Broadcast (WhatsApp Service): Immediately after the database confirms the save, the NoticeService calls your WhatsappService.
 
 The Delivery: The WhatsappService uses a headless browser (Puppeteer) to "type" and "send" that message into your specific WhatsApp group.
+
+scanner guy save the name to a number like 123456789 to arif then it will  be shown as arif in the group instead of 123456789. if the name is not saved then it will show the number like +123456789 in the group.
+
 */

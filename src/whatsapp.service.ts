@@ -99,4 +99,17 @@ export class WhatsappService implements OnModuleInit {
       console.error('❌ WhatsApp Browser Error (Frame Detached).');
     }
   }
+
+
+async sendReply(phoneNumber: string, message: string) {
+  try {
+    const formattedId = phoneNumber.includes('@') ? phoneNumber : `${phoneNumber}@s.whatsapp.net`;
+    await this.client.sendMessage(formattedId, message);
+    console.log(`✅ Reply sent to ${phoneNumber}`);
+  } catch (error) {
+    console.error('❌ Failed to send WhatsApp reply:', error.message);
+  }
+}
+
+
 }

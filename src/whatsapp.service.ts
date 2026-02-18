@@ -55,12 +55,11 @@ export class WhatsappService implements OnModuleInit {
           displayName = digits ? `+${digits}` : 'Group Member';
         }
 
-        // 2. SAVE TO DATABASE
-        // This will now work for ANY group the bot is in.
+       
         await this.noticeService.saveFromWhatsApp({
           title: `WhatsApp: ${displayName}`,
           content: msg.body,
-          groupName: chat.name, // The database saves the group name automatically
+          groupName: chat.name, 
         });
 
         console.log(`✅ Synced: [${chat.name}] ${displayName}: ${msg.body.substring(0, 20)}...`);
@@ -73,14 +72,12 @@ export class WhatsappService implements OnModuleInit {
     this.client.initialize();
   }
 
-  // Modified to handle "All Groups" logic from the dashboard
   async sendMessageToGroup(groupName: string, message: string) {
     if (!this.isReady) return;
 
     try {
       const chats = await this.client.getChats();
       
-      // If the dashboard sends "All Groups", we loop through all joined groups
       if (groupName === 'All Groups') {
         const groups = chats.filter(chat => chat.isGroup);
         for (const g of groups) {
@@ -90,7 +87,7 @@ export class WhatsappService implements OnModuleInit {
         return;
       }
 
-      // Otherwise, find the specific group
+    
       const group = chats.find(
         (chat) =>
           chat.isGroup &&

@@ -11,6 +11,6 @@ import { WhatsappService } from '../whatsapp.service';
   ],
   controllers: [NoticeController],
   providers: [NoticeService, WhatsappService],
-  exports: [NoticeService] // Export it so WhatsappService can use it
+  exports: [NoticeService]
 })
 export class NoticeModule {}

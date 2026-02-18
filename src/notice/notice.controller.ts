@@ -3,7 +3,7 @@ import { NoticeService } from './notice.service';
 import { CreateNoticeDto } from './dto/create-notice.dto';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 
-@ApiTags('notices') // Groups these in Swagger UI
+@ApiTags('notices') // 
 @Controller('notices')
 export class NoticeController {
   constructor(private readonly noticeService: NoticeService) {}

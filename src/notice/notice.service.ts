@@ -16,9 +16,7 @@ export class NoticeService {
     private readonly whatsappService: WhatsappService, 
   ) {}
 
-  /**
-   * Handles incoming messages from WhatsApp sync
-   */
+
   async saveFromWhatsApp(dto: CreateNoticeDto) {
     const notice = this.noticeRepo.create({
       name: dto.title,       
@@ -29,11 +27,9 @@ export class NoticeService {
     return await this.noticeRepo.save(notice);
   }
 
-  /**
-   * Handles manual posts from the Dashboard
-   */
+ 
   async create(createNoticeDto: CreateNoticeDto): Promise<Notice> {
-    // FIX: Map DTO (title/content) to Entity (name/message) before saving
+
     const noticeInstance = this.noticeRepo.create({
       name: createNoticeDto.title,
       message: createNoticeDto.content,
@@ -43,7 +39,6 @@ export class NoticeService {
 
     const savedNotice = await this.noticeRepo.save(noticeInstance);
 
-    // Prepare WhatsApp Message using the correct property names
     const message = `*NEW NOTICE ALERT*\n\n*Title:* ${savedNotice.name}\n*Content:* ${savedNotice.message}`;
     
     if (savedNotice.groupName) {

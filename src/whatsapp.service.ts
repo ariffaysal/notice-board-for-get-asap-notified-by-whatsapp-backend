@@ -1,10 +1,10 @@
-import { Injectable, OnModuleInit, Inject, forwardRef } from '@nestjs/common';
+import { Injectable, OnModuleInit, OnModuleDestroy, Inject, forwardRef } from '@nestjs/common';
 import { NoticeService } from './notice/notice.service'; 
 const { Client, LocalAuth } = require('whatsapp-web.js');
 import * as qrcode from 'qrcode-terminal';
 
 @Injectable()
-export class WhatsappService implements OnModuleInit {
+export class WhatsappService implements OnModuleInit, OnModuleDestroy {
   private client: any;
   private isReady = false;
 
@@ -13,104 +13,109 @@ export class WhatsappService implements OnModuleInit {
     private readonly noticeService: NoticeService,
   ) {}
 
-  onModuleInit() {
+  async onModuleInit() {
+    setTimeout(() => this.initializeClient(), 5000);
+  }
+
+  async onModuleDestroy() {
+    if (this.client) {
+      console.log('Stopping WhatsApp Client...');
+      await this.client.destroy();
+    }
+  }
+
+  private initializeClient() {
+    console.log('Starting WhatsApp Client...');
+    
     this.client = new Client({
       authStrategy: new LocalAuth(),
       puppeteer: {
-        args: ['--no-sandbox', '--disable-setuid-sandbox'],
         headless: true, 
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-gpu',
+          '--disable-dev-shm-usage'
+        ],
+        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36'
       },
     });
 
-    this.client.on('qr', (qr) => {
-      console.log('SCAN THIS QR CODE WITH WHATSAPP:');
+    this.client.on('qr', (qr: string) => {
+      console.log('👉 ACTION REQUIRED: Scan this QR code with your phone:');
       qrcode.generate(qr, { small: true });
     });
 
     this.client.on('ready', () => {
       this.isReady = true;
-      console.log('✅ WhatsApp is ready and logged in!');
+      console.log('✅ WhatsApp is connected and ready!');
     });
 
-    this.client.on('message_create', async (msg: any) => {
-      try {
-        const chat = await msg.getChat();
-        if (!chat.isGroup) return; 
-        
-        const isBotAlert = msg.body.includes('*NEW NOTICE ALERT*');
-        if (isBotAlert) return;
-
-        let displayName = '';
-        try {
-          const contactId = msg.author || msg.from;
-          if (contactId) {
-            const contact = await this.client.getContactById(contactId);
-            displayName = contact.pushname || contact.name;
-          }
-        } catch (e) {}
-
-        if (!displayName) {
-          const rawId = msg.author || msg.from || '';
-          const digits = rawId.split('@')[0].split(':')[0];
-          displayName = digits ? `+${digits}` : 'Group Member';
-        }
-
-       
-        await this.noticeService.saveFromWhatsApp({
-          title: `WhatsApp: ${displayName}`,
-          content: msg.body,
-          groupName: chat.name, 
-        });
-
-        console.log(`✅ Synced: [${chat.name}] ${displayName}: ${msg.body.substring(0, 20)}...`);
-
-      } catch (error) {
-        console.error('❌ Error syncing WhatsApp message:', error.message);
-      }
-    });
-
-    this.client.initialize();
-  }
-
-  async sendMessageToGroup(groupName: string, message: string) {
-    if (!this.isReady) return;
-
-    try {
-      const chats = await this.client.getChats();
-      
-      if (groupName === 'All Groups') {
-        const groups = chats.filter(chat => chat.isGroup);
-        for (const g of groups) {
-          await this.client.sendMessage(g.id._serialized, message);
-          console.log(`✅ Broadcasted to: ${g.name}`);
-        }
-        return;
-      }
-
+   
     
-      const group = chats.find(
-        (chat) =>
-          chat.isGroup &&
-          chat.name.toLowerCase().trim() === groupName.toLowerCase().trim(),
-      );
+const handleMessage = async (msg: any) => {
+  try {
+    // 1. Get Chat details
+    const chat = await msg.getChat();
+    
+    // 2. Filter: We only want Group messages
+    if (!chat || !chat.isGroup) return;
 
-      if (group) {
-        await this.client.sendMessage(group.id._serialized, message);
-      } else {
-        console.warn(`⚠️ Group "${groupName}" not found.`);
-      }
-    } catch (error) {
-      console.error('❌ WhatsApp Send Error:', error.message);
-    }
-  }
+    // 3. LOGGING: If this shows in terminal, the bot SAW your laptop message
+    console.log(`📩 Message detected in [${chat.name}] from ${msg.fromMe ? 'Me (Laptop/Phone)' : 'Someone else'}`);
 
-  async sendReply(phoneNumber: string, message: string) {
-    try {
-      const formattedId = phoneNumber.includes('@') ? phoneNumber : `${phoneNumber}@c.us`;
-      await this.client.sendMessage(formattedId, message);
-      console.log(`✅ Reply sent to ${phoneNumber}`);
-    } catch (error) {
-      console.error('❌ Failed to send WhatsApp reply:', error.message);
-    }
+    const contact = await msg.getContact();
+    const displayName = contact.pushname || contact.name || `+${contact.number}`;
+
+    // 4. SAVE TO DB
+    await this.noticeService.saveFromWhatsApp({
+      title: `WhatsApp: ${displayName}`,
+      content: msg.body,
+      groupName: chat.name, 
+    });
+
+    console.log(`✅ Synced into Database: Group [${chat.name}]`);
+  } catch (error) {
+    console.error('❌ Sync Error:', error.message);
   }
+};
+
+
+
+
+
+    // Use message_create to catch messages you send and messages you receive
+    this.client.on('message_create', handleMessage);
+
+    this.client.on('disconnected', (reason: string) => {
+      this.isReady = false;
+      console.warn('⚠️ WhatsApp was disconnected:', reason);
+    });
+
+    this.client.initialize().catch((err: Error) => {
+      console.error('❌ Critical Puppeteer Error:', err.message);
+    });
+  }
+async sendMessageToGroup(groupName: string, message: string) {
+  if (!this.isReady) return;
+
+  try {
+    const chats = await this.client.getChats();
+    const group = chats.find(
+      (c: any) => c.isGroup && c.name.toLowerCase().trim() === groupName.toLowerCase().trim()
+    );
+
+    if (group) {
+      // Use the client.sendMessage method with the serialized ID
+      // This is much more stable than group.sendMessage()
+      await this.client.sendMessage(group.id._serialized, message); 
+      console.log(`✅ Message sent to ${groupName}`);
+    }
+  } catch (error) {
+    console.error('❌ Send Error:', error.message);
+  }
+}
+
+
+
 }

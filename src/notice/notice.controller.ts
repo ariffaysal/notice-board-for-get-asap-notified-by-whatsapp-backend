@@ -6,7 +6,6 @@ import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 @ApiTags('notices') 
 @Controller('notices')
 export class NoticeController {
-  // NestJS automatically handles the service assignment via the constructor below
   constructor(private readonly noticeService: NoticeService) {}
 
   @Post()

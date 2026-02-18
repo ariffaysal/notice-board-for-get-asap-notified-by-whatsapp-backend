@@ -7,7 +7,6 @@ import { WhatsappService } from '../whatsapp.service';
 
 @Injectable()
 export class NoticeService {
-
   constructor(
     @InjectRepository(Notice)
     private readonly noticeRepo: Repository<Notice>, 
@@ -16,8 +15,7 @@ export class NoticeService {
     private readonly whatsappService: WhatsappService, 
   ) {}
 
-
-  async saveFromWhatsApp(dto: CreateNoticeDto) {
+  async saveFromWhatsApp(dto: { title: string; content: string; groupName: string }) {
     const notice = this.noticeRepo.create({
       name: dto.title,       
       message: dto.content,  
@@ -27,63 +25,40 @@ export class NoticeService {
     return await this.noticeRepo.save(notice);
   }
 
-
-async create(createNoticeDto: CreateNoticeDto): Promise<Notice> {
-  const noticeInstance = this.noticeRepo.create({
-    name: createNoticeDto.title,
-    message: createNoticeDto.content,
-    groupName: createNoticeDto.groupName,
-    category: createNoticeDto.category || 'General'
-  });
-
-  const savedNotice = await this.noticeRepo.save(noticeInstance);
-  const message = `*NEW NOTICE ALERT*\n\n*Title:* ${savedNotice.name}\n*Content:* ${savedNotice.message}`;
-  
-  const allTargetGroups = ['.Net Framework Project', 'Chemistry'];
-
-  if (savedNotice.groupName === 'All Groups') {
-    allTargetGroups.forEach(group => {
-      this.whatsappService.sendMessageToGroup(group, message)
-        .then(() => console.log(`✅ Broadcasted to: ${group}`))
-        .catch(e => console.error(`❌ Failed for ${group}:`, e.message));
+  async create(createNoticeDto: CreateNoticeDto): Promise<Notice> {
+    const noticeInstance = this.noticeRepo.create({
+      name: createNoticeDto.title,
+      message: createNoticeDto.content,
+      groupName: createNoticeDto.groupName,
+      category: createNoticeDto.category || 'General'
     });
-  } else if (savedNotice.groupName) {
-    this.whatsappService.sendMessageToGroup(savedNotice.groupName, message)
-      .catch(e => console.error('WhatsApp Error:', e.message));
+
+    const savedNotice = await this.noticeRepo.save(noticeInstance);
+    const message = `*NEW NOTICE ALERT*\n\n*Title:* ${savedNotice.name}\n*Content:* ${savedNotice.message}`;
+    
+    const allTargetGroups = ['.Net Framework Project', 'Chemistry'];
+
+    if (savedNotice.groupName === 'All Groups') {
+      allTargetGroups.forEach(group => {
+        this.whatsappService.sendMessageToGroup(group, message)
+          .then(() => console.log(`✅ Broadcasted to: ${group}`))
+          .catch(e => console.error(`❌ Failed for ${group}:`, e.message));
+      });
+    } else if (savedNotice.groupName) {
+      this.whatsappService.sendMessageToGroup(savedNotice.groupName, message)
+        .catch(e => console.error('WhatsApp Error:', e.message));
+    }
+
+    return savedNotice;
   }
-
-  return savedNotice;
-}
-
-
 
   async findAll() {
-    const data = await this.noticeRepo.find({ order: { id: 'DESC' } });
-    return data.map(notice => ({
-      id: notice.id,
-      name: notice.name,      
-      message: notice.message, 
-      groupName: notice.groupName, 
-      category: notice.category,
-      createdAt: notice.createdAt
-    }));
+    return await this.noticeRepo.find({ order: { id: 'DESC' } });
   }
 
-  async findOne(id: number): Promise<Notice> {
-    const notice = await this.noticeRepo.findOneBy({ id: id as any }); 
-    if (!notice) throw new NotFoundException(`Notice #${id} not found`);
-    return notice;
-  }
-
-  async update(id: number, updateData: Partial<CreateNoticeDto>): Promise<Notice> {
-    const notice = await this.findOne(id);
-    
-    if (updateData.title) notice.name = updateData.title;
-    if (updateData.content) notice.message = updateData.content;
-    if (updateData.groupName) notice.groupName = updateData.groupName;
-    if (updateData.category) notice.category = updateData.category;
-
-    return await this.noticeRepo.save(notice);
+ 
+  async deleteByGroupName(groupName: string) {
+    return await this.noticeRepo.delete({ groupName });
   }
 
   async remove(id: number): Promise<void> {

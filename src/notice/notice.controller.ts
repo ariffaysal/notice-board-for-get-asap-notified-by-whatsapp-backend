@@ -6,6 +6,7 @@ import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 @ApiTags('notices') 
 @Controller('notices')
 export class NoticeController {
+  // NestJS automatically handles the service assignment via the constructor below
   constructor(private readonly noticeService: NoticeService) {}
 
   @Post()
@@ -15,21 +16,9 @@ export class NoticeController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Get all notices (formatted for customer)' })
-  @ApiResponse({ status: 200, description: 'Returns id, name, message, etc.' })
+  @ApiOperation({ summary: 'Get all notices' })
   findAll() {
     return this.noticeService.findAll();
-  }
-
-  @Get(':id')
-  @ApiOperation({ summary: 'Get a single notice by ID' })
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.noticeService.findOne(id);
-  }
-
-  @Patch(':id')
-  update(@Param('id', ParseIntPipe) id: number, @Body() updateData: Partial<CreateNoticeDto>) {
-    return this.noticeService.update(id, updateData);
   }
 
   @Delete('clear-all')
@@ -37,6 +26,13 @@ export class NoticeController {
   async removeAll() {
     await this.noticeService.deleteAll();
     return { message: "All notices deleted successfully" };
+  }
+
+  @Delete('group/:groupName')
+  @ApiOperation({ summary: 'Delete all notices from a specific group' })
+  async deleteByGroup(@Param('groupName') groupName: string) {
+    // Fixed: Uses the injected service from the constructor
+    return this.noticeService.deleteByGroupName(groupName);
   }
 
   @Delete(':id')

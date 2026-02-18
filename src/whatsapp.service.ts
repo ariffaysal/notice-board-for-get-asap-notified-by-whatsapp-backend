@@ -35,40 +35,36 @@ export class WhatsappService implements OnModuleInit {
     this.client.on('message_create', async (msg: any) => {
       try {
         const chat = await msg.getChat();
+        if (!chat.isGroup) return; 
         
-        const targetGroupNames = ['.Net Framework Project', 'Chemistry'];
+        const isBotAlert = msg.body.includes('*NEW NOTICE ALERT*');
+        if (isBotAlert) return;
 
-        if (chat.name && targetGroupNames.includes(chat.name.trim())) {
-          const isBotAlert = msg.body.includes('*NEW NOTICE ALERT*');
-
-          if (!isBotAlert) {
-            let displayName = '';
-
-            try {
-              const contactId = msg.author || msg.from;
-              if (contactId) {
-                const contact = await this.client.getContactById(contactId);
-                displayName = contact.pushname || contact.name;
-              }
-            } catch (e) {
-
-            }
-
-            if (!displayName) {
-              const rawId = msg.author || msg.from || '';
-              const digits = rawId.split('@')[0].split(':')[0];
-              displayName = digits ? `+${digits}` : 'Group Member';
-            }
-
-            await this.noticeService.saveFromWhatsApp({
-              title: `WhatsApp: ${displayName}`,
-              content: msg.body,
-              groupName: chat.name,
-            });
-
-            console.log(`✅ Synced message from ${displayName} in [${chat.name}]`);
+        let displayName = '';
+        try {
+          const contactId = msg.author || msg.from;
+          if (contactId) {
+            const contact = await this.client.getContactById(contactId);
+            displayName = contact.pushname || contact.name;
           }
+        } catch (e) {}
+
+        if (!displayName) {
+          const rawId = msg.author || msg.from || '';
+          const digits = rawId.split('@')[0].split(':')[0];
+          displayName = digits ? `+${digits}` : 'Group Member';
         }
+
+        // 2. SAVE TO DATABASE
+        // This will now work for ANY group the bot is in.
+        await this.noticeService.saveFromWhatsApp({
+          title: `WhatsApp: ${displayName}`,
+          content: msg.body,
+          groupName: chat.name, // The database saves the group name automatically
+        });
+
+        console.log(`✅ Synced: [${chat.name}] ${displayName}: ${msg.body.substring(0, 20)}...`);
+
       } catch (error) {
         console.error('❌ Error syncing WhatsApp message:', error.message);
       }
@@ -77,31 +73,40 @@ export class WhatsappService implements OnModuleInit {
     this.client.initialize();
   }
 
- 
-
-
+  // Modified to handle "All Groups" logic from the dashboard
   async sendMessageToGroup(groupName: string, message: string) {
-  if (!this.isReady) return;
+    if (!this.isReady) return;
 
-  try {
-    const chats = await this.client.getChats();
-    const group = chats.find(
-      (chat) =>
-        chat.isGroup &&
-        chat.name.toLowerCase().trim() === groupName.toLowerCase().trim(),
-    );
+    try {
+      const chats = await this.client.getChats();
+      
+      // If the dashboard sends "All Groups", we loop through all joined groups
+      if (groupName === 'All Groups') {
+        const groups = chats.filter(chat => chat.isGroup);
+        for (const g of groups) {
+          await this.client.sendMessage(g.id._serialized, message);
+          console.log(`✅ Broadcasted to: ${g.name}`);
+        }
+        return;
+      }
 
-    if (group) {
-      await this.client.sendMessage(group.id._serialized, message);
-    } else {
-      console.warn(`⚠️ Group "${groupName}" not found on this WhatsApp account.`);
+      // Otherwise, find the specific group
+      const group = chats.find(
+        (chat) =>
+          chat.isGroup &&
+          chat.name.toLowerCase().trim() === groupName.toLowerCase().trim(),
+      );
+
+      if (group) {
+        await this.client.sendMessage(group.id._serialized, message);
+      } else {
+        console.warn(`⚠️ Group "${groupName}" not found.`);
+      }
+    } catch (error) {
+      console.error('❌ WhatsApp Send Error:', error.message);
     }
-  } catch (error) {
-    console.error('❌ WhatsApp Send Error:', error.message);
   }
-}
 
-  
   async sendReply(phoneNumber: string, message: string) {
     try {
       const formattedId = phoneNumber.includes('@') ? phoneNumber : `${phoneNumber}@c.us`;

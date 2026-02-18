@@ -27,28 +27,35 @@ export class NoticeService {
     return await this.noticeRepo.save(notice);
   }
 
- 
-  async create(createNoticeDto: CreateNoticeDto): Promise<Notice> {
 
-    const noticeInstance = this.noticeRepo.create({
-      name: createNoticeDto.title,
-      message: createNoticeDto.content,
-      groupName: createNoticeDto.groupName,
-      category: createNoticeDto.category || 'General'
+async create(createNoticeDto: CreateNoticeDto): Promise<Notice> {
+  const noticeInstance = this.noticeRepo.create({
+    name: createNoticeDto.title,
+    message: createNoticeDto.content,
+    groupName: createNoticeDto.groupName,
+    category: createNoticeDto.category || 'General'
+  });
+
+  const savedNotice = await this.noticeRepo.save(noticeInstance);
+  const message = `*NEW NOTICE ALERT*\n\n*Title:* ${savedNotice.name}\n*Content:* ${savedNotice.message}`;
+  
+  const allTargetGroups = ['.Net Framework Project', 'Chemistry'];
+
+  if (savedNotice.groupName === 'All Groups') {
+    allTargetGroups.forEach(group => {
+      this.whatsappService.sendMessageToGroup(group, message)
+        .then(() => console.log(`✅ Broadcasted to: ${group}`))
+        .catch(e => console.error(`❌ Failed for ${group}:`, e.message));
     });
-
-    const savedNotice = await this.noticeRepo.save(noticeInstance);
-
-    const message = `*NEW NOTICE ALERT*\n\n*Title:* ${savedNotice.name}\n*Content:* ${savedNotice.message}`;
-    
-    if (savedNotice.groupName) {
-      this.whatsappService.sendMessageToGroup(savedNotice.groupName, message)
-        .then(() => console.log(`✅ Notice broadcasted to ${savedNotice.groupName}`))
-        .catch(e => console.error('WhatsApp Broadcast Error:', e.message));
-    }
-
-    return savedNotice;
+  } else if (savedNotice.groupName) {
+    this.whatsappService.sendMessageToGroup(savedNotice.groupName, message)
+      .catch(e => console.error('WhatsApp Error:', e.message));
   }
+
+  return savedNotice;
+}
+
+
 
   async findAll() {
     const data = await this.noticeRepo.find({ order: { id: 'DESC' } });

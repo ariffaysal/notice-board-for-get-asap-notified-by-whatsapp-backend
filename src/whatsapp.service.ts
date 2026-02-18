@@ -77,37 +77,31 @@ export class WhatsappService implements OnModuleInit {
     this.client.initialize();
   }
 
-  /**
-   * Used when you "Broadcast" from the dashboard
-   */
+ 
+
+
   async sendMessageToGroup(groupName: string, message: string) {
-    if (!this.isReady) {
-      console.warn('⚠️ WhatsApp client not ready yet.');
-      return;
-    }
+  if (!this.isReady) return;
 
-    try {
-      const chats = await this.client.getChats();
-      const group = chats.find(
-        (chat) =>
-          chat.isGroup &&
-          chat.name.toLowerCase().trim() === groupName.toLowerCase().trim(),
-      );
+  try {
+    const chats = await this.client.getChats();
+    const group = chats.find(
+      (chat) =>
+        chat.isGroup &&
+        chat.name.toLowerCase().trim() === groupName.toLowerCase().trim(),
+    );
 
-      if (group) {
-        await this.client.sendMessage(group.id._serialized, message);
-        console.log(`✅ Message broadcasted to group: "${groupName}"`);
-      } else {
-        console.warn(`⚠️ Group "${groupName}" not found.`);
-      }
-    } catch (error) {
-      console.error('❌ WhatsApp Send Error:', error.message);
+    if (group) {
+      await this.client.sendMessage(group.id._serialized, message);
+    } else {
+      console.warn(`⚠️ Group "${groupName}" not found on this WhatsApp account.`);
     }
+  } catch (error) {
+    console.error('❌ WhatsApp Send Error:', error.message);
   }
+}
 
-  /**
-   * Used for direct replies if needed
-   */
+  
   async sendReply(phoneNumber: string, message: string) {
     try {
       const formattedId = phoneNumber.includes('@') ? phoneNumber : `${phoneNumber}@c.us`;

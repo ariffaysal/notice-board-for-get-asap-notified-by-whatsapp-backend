@@ -1,21 +1,19 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
-import { Setting } from './notice/entities/setting.entity'; // Import the new entity
-import { Notice } from './notice/entities/notice.entity';
 
 async function bootstrap() {
+  // 1. Initialize the NestJS Application using the AppModule
   const app = await NestFactory.create(AppModule);
 
- 
-app.enableCors({
-  origin: '*', // Reflects the request origin
-  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-  credentials: true,
-  entities: [Notice, Setting], 
-  synchronize: true,
-});
+  // 2. Enable CORS (Properly configured for your Frontend)
+  app.enableCors({
+    origin: '*', 
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    credentials: true,
+  });
 
+  // 3. Swagger API Documentation Setup
   const config = new DocumentBuilder()
     .setTitle('Client Notice API')
     .setDescription('API for WhatsApp Sync and Notice Management')
@@ -25,9 +23,13 @@ app.enableCors({
     
   const document = SwaggerModule.createDocument(app, config);
   
+  // This makes your documentation live at /api
   SwaggerModule.setup('api', app, document);
 
+  // 4. Start the Server on Port 3001
   await app.listen(3001);
+
+  // 5. Vital Console Logs
   console.log(`🚀 API is running on: http://localhost:3001/notices`);
   console.log(`📖 Documentation available at: http://localhost:3001/api`);
 }

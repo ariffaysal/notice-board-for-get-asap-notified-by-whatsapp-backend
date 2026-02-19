@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { NoticeModule } from './notice/notice.module';
 import { Notice } from './notice/entities/notice.entity';
+import { Setting } from './notice/entities/setting.entity'; // 1. Import the Setting entity
 
 @Module({
   imports: [
@@ -9,11 +10,11 @@ import { Notice } from './notice/entities/notice.entity';
       type: 'postgres',
       host: 'localhost',
       port: 5432,
-      username: 'postgres', // your postgres username
-      password: 'mmmm', // your postgres password
-      database: 'noticeboard', // your postgres database name
-      entities: [Notice],
-      synchronize: true, // Auto-creates tables based on entity (dev only)
+      username: 'postgres', 
+      password: 'mmmm', 
+      database: 'noticeboard', 
+      entities: [Notice, Setting], // 2. Add Setting here
+      synchronize: true, 
     }),
     NoticeModule,
   ],

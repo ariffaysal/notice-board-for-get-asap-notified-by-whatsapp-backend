@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { Notice } from './entities/notice.entity';
 import { CreateNoticeDto } from './dto/create-notice.dto';
 import { WhatsappService } from '../whatsapp.service'; 
+import { Setting } from './entities/setting.entity';
 
 @Injectable()
 export class NoticeService {
@@ -55,6 +56,30 @@ export class NoticeService {
 
     return savedNotice;
   }
+
+
+
+
+
+async updateApprovedGroups(groups: string[]) {
+  let setting = await this.noticeRepo.manager.findOne(Setting, { where: { key: 'approved_groups' } });
+  
+  if (!setting) {
+    setting = this.noticeRepo.manager.create(Setting, { key: 'approved_groups', value: groups });
+  } else {
+    setting.value = groups;
+  }
+  
+  return await this.noticeRepo.manager.save(setting);
+}
+
+async getApprovedGroups() {
+  const setting = await this.noticeRepo.manager.findOne(Setting, { where: { key: 'approved_groups' } });
+  return setting ? setting.value : [];
+}
+
+
+  
 
   async findAll() {
     return await this.noticeRepo.find({ order: { id: 'DESC' } });

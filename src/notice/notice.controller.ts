@@ -30,7 +30,6 @@ export class NoticeController {
   @Delete('group/:groupName')
   @ApiOperation({ summary: 'Delete all notices from a specific group' })
   async deleteByGroup(@Param('groupName') groupName: string) {
-    // Fixed: Uses the injected service from the constructor
     return this.noticeService.deleteByGroupName(groupName);
   }
 
@@ -39,4 +38,19 @@ export class NoticeController {
   async remove(@Param('id', ParseIntPipe) id: number) {
     return this.noticeService.remove(id); 
   }
+
+
+
+
+@Get('settings/groups')
+@ApiOperation({ summary: 'Get the list of approved WhatsApp groups' })
+getGroups() {
+  return this.noticeService.getApprovedGroups();
+}
+
+@Post('settings/groups')
+@ApiOperation({ summary: 'Save the list of approved WhatsApp groups' })
+updateGroups(@Body() body: { groups: string[] }) {
+  return this.noticeService.updateApprovedGroups(body.groups);
+}
 }

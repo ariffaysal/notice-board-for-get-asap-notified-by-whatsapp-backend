@@ -26,26 +26,30 @@ export class NoticeService {
   }
 
   async create(createNoticeDto: CreateNoticeDto): Promise<Notice> {
+    const { title, content, groupName, category, approvedGroups } = createNoticeDto;
+
     const noticeInstance = this.noticeRepo.create({
-      name: createNoticeDto.title,
-      message: createNoticeDto.content,
-      groupName: createNoticeDto.groupName,
-      category: createNoticeDto.category || 'General'
+      name: title,
+      message: content,
+      groupName: groupName,
+      category: category || 'General'
     });
 
     const savedNotice = await this.noticeRepo.save(noticeInstance);
-    const message = `*NEW NOTICE ALERT*\n\n*Title:* ${savedNotice.name}\n*Content:* ${savedNotice.message}`;
-    
-    const allTargetGroups = ['.Net Framework Project', 'Chemistry'];
+    const whatsappMessage = `*NEW NOTICE ALERT*\n\n*Title:* ${savedNotice.name}\n*Content:* ${savedNotice.message}`;
 
-    if (savedNotice.groupName === 'All Groups') {
-      allTargetGroups.forEach(group => {
-        this.whatsappService.sendMessageToGroup(group, message)
-          .then(() => console.log(`✅ Broadcasted to: ${group}`))
-          .catch(e => console.error(`❌ Failed for ${group}:`, e.message));
+    // Logic for broadcasting to moderated "All Groups"
+    if (groupName === 'All Groups' && approvedGroups && approvedGroups.length > 0) {
+      // ONLY send to groups the user has clicked "Approve" on in the UI
+      approvedGroups.forEach(targetGroup => {
+        this.whatsappService.sendMessageToGroup(targetGroup, whatsappMessage)
+          .then(() => console.log(`✅ Broadcasted to Approved Group: ${targetGroup}`))
+          .catch(e => console.error(`❌ Failed for ${targetGroup}:`, e.message));
       });
-    } else if (savedNotice.groupName) {
-      this.whatsappService.sendMessageToGroup(savedNotice.groupName, message)
+    } 
+    // Logic for a single specific group
+    else if (groupName && groupName !== 'All Groups') {
+      this.whatsappService.sendMessageToGroup(groupName, whatsappMessage)
         .catch(e => console.error('WhatsApp Error:', e.message));
     }
 
@@ -56,7 +60,6 @@ export class NoticeService {
     return await this.noticeRepo.find({ order: { id: 'DESC' } });
   }
 
- 
   async deleteByGroupName(groupName: string) {
     return await this.noticeRepo.delete({ groupName });
   }

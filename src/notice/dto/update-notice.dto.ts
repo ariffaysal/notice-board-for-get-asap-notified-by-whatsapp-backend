@@ -1,4 +1,4 @@
-import { IsString, IsOptional } from 'class-validator';
+import { IsString, IsOptional, IsArray } from 'class-validator';
 
 export class UpdateNoticeDto {
   @IsString()
@@ -16,4 +16,9 @@ export class UpdateNoticeDto {
   @IsString()
   @IsOptional()
   groupName?: string;
+
+  @IsArray()
+  @IsOptional()
+  @IsString({ each: true })
+  approvedGroups?: string[]; 
 }

@@ -117,5 +117,14 @@ async sendMessageToGroup(groupName: string, message: string) {
 }
 
 
+async getAllGroups(): Promise<string[]> {
+  if (!this.isReady) return [];
+  const chats = await this.client.getChats();
+  return chats
+    .filter((chat: any) => chat.isGroup)
+    .map((chat: any) => chat.name);
+}
+
+
 
 }

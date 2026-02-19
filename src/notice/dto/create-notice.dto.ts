@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsNotEmpty } from 'class-validator';
+import { IsString, IsOptional, IsArray, IsNotEmpty } from 'class-validator';
 
 export class CreateNoticeDto {
   @IsString()
@@ -10,10 +10,15 @@ export class CreateNoticeDto {
   content: string;
 
   @IsString()
-  @IsOptional()
-  category?: string;
+  @IsNotEmpty()
+  groupName: string;
 
   @IsString()
   @IsOptional()
-  groupName?: string; 
+  category?: string;
+
+  @IsArray()
+  @IsOptional()
+  @IsString({ each: true })
+  approvedGroups?: string[]; 
 }

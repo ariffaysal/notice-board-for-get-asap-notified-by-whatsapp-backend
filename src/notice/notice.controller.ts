@@ -42,15 +42,16 @@ export class NoticeController {
 
 
 
+
 @Get('settings/groups')
-@ApiOperation({ summary: 'Get the list of approved WhatsApp groups' })
-getGroups() {
-  return this.noticeService.getApprovedGroups();
+@ApiOperation({ summary: 'GET: Fetch the list of approved groups from database' })
+async getApprovedGroups() {
+  return await this.noticeService.getApprovedGroups();
 }
 
 @Post('settings/groups')
-@ApiOperation({ summary: 'Save the list of approved WhatsApp groups' })
-updateGroups(@Body() body: { groups: string[] }) {
-  return this.noticeService.updateApprovedGroups(body.groups);
+@ApiOperation({ summary: 'SEND: Update/Save the approved groups list to database' })
+async updateApprovedGroups(@Body() body: { groups: string[] }) {
+  return await this.noticeService.updateApprovedGroups(body.groups);
 }
 }

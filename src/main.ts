@@ -1,6 +1,8 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { Setting } from './notice/entities/setting.entity'; // Import the new entity
+import { Notice } from './notice/entities/notice.entity';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -10,6 +12,8 @@ app.enableCors({
   origin: '*', // Reflects the request origin
   methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
   credentials: true,
+  entities: [Notice, Setting], 
+  synchronize: true,
 });
 
   const config = new DocumentBuilder()

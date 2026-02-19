@@ -6,6 +6,7 @@ import { CreateNoticeDto } from './dto/create-notice.dto';
 import { WhatsappService } from '../whatsapp.service'; 
 import { Setting } from './entities/setting.entity';
 
+
 @Injectable()
 export class NoticeService {
   constructor(

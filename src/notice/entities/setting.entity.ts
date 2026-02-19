@@ -5,9 +5,9 @@ export class Setting {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
+  @Column({ unique: true })
   key: string; 
 
-  @Column('simple-array')
-  value: string[]; 
+  @Column('simple-array', { nullable: true })
+  value: string[];
 }

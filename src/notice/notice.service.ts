@@ -95,7 +95,6 @@ export class NoticeService {
 
 
   async findOne(id: number): Promise<Notice> {
-  // We do NOT use the "Today" filter here, so it can find old history
   const notice = await this.noticeRepo.findOne({ where: { id } });
   if (!notice) throw new NotFoundException(`Notice #${id} not found`);
   return notice;

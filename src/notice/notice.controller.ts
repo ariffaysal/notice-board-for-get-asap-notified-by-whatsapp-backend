@@ -20,6 +20,15 @@ export class NoticeController {
     return this.noticeService.findAll();
   }
 
+
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Get a specific notice by ID' })
+  findOne(@Param('id') id: string) {
+    return this.noticeService.findOne(+id); // The + converts the URL string "235" into a Number
+  }
+
+
   @Delete('clear-all')
   @ApiOperation({ summary: 'Wipe the entire database' })
   async removeAll() {

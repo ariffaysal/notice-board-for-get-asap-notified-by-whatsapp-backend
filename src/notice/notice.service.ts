@@ -1,14 +1,15 @@
 import { Injectable, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Between, Repository } from 'typeorm';
 import { Notice } from './entities/notice.entity';
 import { CreateNoticeDto } from './dto/create-notice.dto';
 import { WhatsappService } from '../whatsapp.service'; 
 import { Setting } from './entities/setting.entity';
 
-
 @Injectable()
 export class NoticeService {
+ 
+
   constructor(
     @InjectRepository(Notice)
     private readonly noticeRepo: Repository<Notice>, 
@@ -40,16 +41,14 @@ export class NoticeService {
     const savedNotice = await this.noticeRepo.save(noticeInstance);
     const whatsappMessage = `*NEW NOTICE ALERT*\n\n*Title:* ${savedNotice.name}\n*Content:* ${savedNotice.message}`;
 
-    // Logic for broadcasting to moderated "All Groups"
+    //  Ensure we don't try to send if WhatsappService isn't ready
     if (groupName === 'All Groups' && approvedGroups && approvedGroups.length > 0) {
-      // ONLY send to groups the user has clicked "Approve" on in the UI
       approvedGroups.forEach(targetGroup => {
         this.whatsappService.sendMessageToGroup(targetGroup, whatsappMessage)
           .then(() => console.log(`✅ Broadcasted to Approved Group: ${targetGroup}`))
           .catch(e => console.error(`❌ Failed for ${targetGroup}:`, e.message));
       });
     } 
-    // Logic for a single specific group
     else if (groupName && groupName !== 'All Groups') {
       this.whatsappService.sendMessageToGroup(groupName, whatsappMessage)
         .catch(e => console.error('WhatsApp Error:', e.message));
@@ -58,33 +57,50 @@ export class NoticeService {
     return savedNotice;
   }
 
-
-
-
-
-async updateApprovedGroups(groups: string[]) {
-  let setting = await this.noticeRepo.manager.findOne(Setting, { where: { key: 'approved_groups' } });
-  
-  if (!setting) {
-    setting = this.noticeRepo.manager.create(Setting, { key: 'approved_groups', value: groups });
-  } else {
-    setting.value = groups;
+  //  Using the manager correctly for the Setting entity
+  async updateApprovedGroups(groups: string[]) {
+    let setting = await this.noticeRepo.manager.findOne(Setting, { where: { key: 'approved_groups' } });
+    
+    if (!setting) {
+      setting = this.noticeRepo.manager.create(Setting, { key: 'approved_groups', value: groups });
+    } else {
+      setting.value = groups;
+    }
+    
+    return await this.noticeRepo.manager.save(setting);
   }
-  
-  return await this.noticeRepo.manager.save(setting);
-}
 
-async getApprovedGroups() {
-  const setting = await this.noticeRepo.manager.findOne(Setting, { where: { key: 'approved_groups' } });
-  return setting ? setting.value : [];
-}
-
-
-  
+  async getApprovedGroups() {
+    const setting = await this.noticeRepo.manager.findOne(Setting, { where: { key: 'approved_groups' } });
+    return setting ? setting.value : [];
+  }
 
   async findAll() {
-    return await this.noticeRepo.find({ order: { id: 'DESC' } });
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const endOfDay = new Date();
+    endOfDay.setHours(23, 59, 59, 999);
+
+    //  Using this.noticeRepo instead of the ghost variable
+    return await this.noticeRepo.find({
+      where: {
+        createdAt: Between(startOfDay, endOfDay),
+      },
+      order: {
+        createdAt: 'DESC',
+      },
+    });
   }
+
+
+
+  async findOne(id: number): Promise<Notice> {
+  // We do NOT use the "Today" filter here, so it can find old history
+  const notice = await this.noticeRepo.findOne({ where: { id } });
+  if (!notice) throw new NotFoundException(`Notice #${id} not found`);
+  return notice;
+}
 
   async deleteByGroupName(groupName: string) {
     return await this.noticeRepo.delete({ groupName });

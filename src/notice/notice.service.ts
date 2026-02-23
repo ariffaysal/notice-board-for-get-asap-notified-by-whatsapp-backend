@@ -82,7 +82,6 @@ export class NoticeService {
     const endOfDay = new Date();
     endOfDay.setHours(23, 59, 59, 999);
 
-    //  Using this.noticeRepo instead of the ghost variable
     return await this.noticeRepo.find({
       where: {
         createdAt: Between(startOfDay, endOfDay),

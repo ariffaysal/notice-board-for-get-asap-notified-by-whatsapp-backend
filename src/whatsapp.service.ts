@@ -84,7 +84,6 @@ const handleMessage = async (msg: any) => {
 
 
 
-    // Use message_create to catch messages you send and messages you receive
     this.client.on('message_create', handleMessage);
 
     this.client.on('disconnected', (reason: string) => {
@@ -106,8 +105,7 @@ async sendMessageToGroup(groupName: string, message: string) {
     );
 
     if (group) {
-      // Use the client.sendMessage method with the serialized ID
-      // This is much more stable than group.sendMessage()
+
       await this.client.sendMessage(group.id._serialized, message); 
       console.log(`✅ Message sent to ${groupName}`);
     }

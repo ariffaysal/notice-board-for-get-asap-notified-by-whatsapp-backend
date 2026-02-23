@@ -25,7 +25,7 @@ export class NoticeController {
   @Get(':id')
   @ApiOperation({ summary: 'Get a specific notice by ID' })
   findOne(@Param('id') id: string) {
-    return this.noticeService.findOne(+id); // The + converts the URL string "235" into a Number
+    return this.noticeService.findOne(+id); 
   }
 
 

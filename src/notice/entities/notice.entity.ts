@@ -26,4 +26,7 @@ groupName: string;
   @UpdateDateColumn()
   updatedAt: Date;
   
+    @Column({ nullable: true })
+    whatsappId: string; 
+  
 }

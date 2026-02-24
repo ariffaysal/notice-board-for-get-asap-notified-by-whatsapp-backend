@@ -1,6 +1,6 @@
 import { Injectable, OnModuleInit, OnModuleDestroy, Inject, forwardRef } from '@nestjs/common';
 import { NoticeService } from './notice/notice.service'; 
-const { Client, LocalAuth } = require('whatsapp-web.js');
+import { Client, LocalAuth } from 'whatsapp-web.js';
 import * as qrcode from 'qrcode-terminal';
 
 @Injectable()
@@ -14,6 +14,7 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   async onModuleInit() {
+
     setTimeout(() => this.initializeClient(), 5000);
   }
 
@@ -51,40 +52,8 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
       console.log('✅ WhatsApp is connected and ready!');
     });
 
-   
-    
-const handleMessage = async (msg: any) => {
-  try {
-    // 1. Get Chat details
-    const chat = await msg.getChat();
-    
-    // 2. Filter: We only want Group messages
-    if (!chat || !chat.isGroup) return;
-
-    // 3. LOGGING: If this shows in terminal, the bot SAW your laptop message
-    console.log(`📩 Message detected in [${chat.name}] from ${msg.fromMe ? 'Me (Laptop/Phone)' : 'Someone else'}`);
-
-    const contact = await msg.getContact();
-    const displayName = contact.pushname || contact.name || `+${contact.number}`;
-
-    // 4. SAVE TO DB
-    await this.noticeService.saveFromWhatsApp({
-      title: `WhatsApp: ${displayName}`,
-      content: msg.body,
-      groupName: chat.name, 
-    });
-
-    console.log(`✅ Synced into Database: Group [${chat.name}]`);
-  } catch (error) {
-    console.error('❌ Sync Error:', error.message);
-  }
-};
-
-
-
-
-
-    this.client.on('message_create', handleMessage);
+ 
+    this.client.on('message_create', (msg: any) => this.handleMessage(msg));
 
     this.client.on('disconnected', (reason: string) => {
       this.isReady = false;
@@ -95,34 +64,79 @@ const handleMessage = async (msg: any) => {
       console.error('❌ Critical Puppeteer Error:', err.message);
     });
   }
-async sendMessageToGroup(groupName: string, message: string) {
-  if (!this.isReady) return;
 
-  try {
-    const chats = await this.client.getChats();
-    const group = chats.find(
-      (c: any) => c.isGroup && c.name.toLowerCase().trim() === groupName.toLowerCase().trim()
-    );
 
-    if (group) {
+  private async handleMessage(msg: any) {
+    try {
+      const chat = await msg.getChat();
+      
+      if (!chat || !chat.isGroup) return;
 
-      await this.client.sendMessage(group.id._serialized, message); 
-      console.log(`✅ Message sent to ${groupName}`);
+      const groupName = chat.name || "Unknown Group";
+      const groupId = chat.id?._serialized;
+
+      if (!groupId) {
+        console.warn("⚠️ Group detected but ID is missing. Skipping...");
+        return;
+      }
+
+      console.log(`📩 Message in [${groupName}] from ${msg.fromMe ? 'Me' : 'Others'}`);
+
+      const contact = await msg.getContact();
+      const displayName = contact.pushname || contact.name || `+${contact.number}`;
+
+      
+      // SAVE TO DB WITH UNIQUE WHATSAPP ID
+      await this.noticeService.saveFromWhatsApp({
+        title: `WhatsApp: ${displayName}`,
+        content: msg.body || "", 
+        groupName: groupName,
+        whatsappId: groupId 
+      });
+
+      console.log(`✅ Synced into Database: Group [${groupName}]`);
+    } catch (error) {
+      console.error('❌ Sync Error details:', error.message);
     }
-  } catch (error) {
-    console.error('❌ Send Error:', error.message);
   }
-}
 
+  /**
+   * NEW: Send message via Unique WhatsApp ID (Terminal/API usage)
+   */
+  async sendMessageToId(jid: string, message: string) {
+    if (!this.isReady) throw new Error("WhatsApp client not ready");
+    return await this.client.sendMessage(jid, message);
+  }
 
-async getAllGroups(): Promise<string[]> {
-  if (!this.isReady) return [];
-  const chats = await this.client.getChats();
-  return chats
-    .filter((chat: any) => chat.isGroup)
-    .map((chat: any) => chat.name);
-}
+  /**
+   * EXISTING: Send message via Group Name (Browser usage)
+   */
+  async sendMessageToGroup(groupName: string, message: string) {
+    if (!this.isReady) return;
 
+    try {
+      const chats = await this.client.getChats();
+      const group = chats.find(
+        (c: any) => c.isGroup && c.name.toLowerCase().trim() === groupName.toLowerCase().trim()
+      );
 
+      if (group) {
+        await this.client.sendMessage(group.id._serialized, message); 
+        console.log(`✅ Message sent to ${groupName}`);
+      }
+    } catch (error) {
+      console.error('❌ Send Error:', error.message);
+    }
+  }
 
+  /**
+   * EXISTING: Get all group names for dropdowns
+   */
+  async getAllGroups(): Promise<string[]> {
+    if (!this.isReady) return [];
+    const chats = await this.client.getChats();
+    return chats
+      .filter((chat: any) => chat.isGroup)
+      .map((chat: any) => chat.name);
+  }
 }

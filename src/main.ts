@@ -54,3 +54,35 @@ scanner guy save the name to a number like 123456789 to arif then it will  be sh
 
 use swagger to document your API endpoints. This will help you and other developers understand how to interact with your backend.
 */
+
+
+
+
+
+
+//  delete .wwebjs_auth  before delivery 
+
+
+
+
+
+
+
+
+
+
+
+/*
+
+
+$body = @{
+    title      = "test Sync"
+    content    = "Testing message to Group A"
+    groupName  = "A"
+    whatsappId = "120363423778038121@g.us"
+} | ConvertTo-Json
+
+Invoke-RestMethod -Uri "http://localhost:3001/notices" -Method Post -Body $body -ContentType "application/json"
+
+
+*/

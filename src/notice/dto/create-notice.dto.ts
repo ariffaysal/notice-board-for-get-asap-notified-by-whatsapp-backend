@@ -20,5 +20,9 @@ export class CreateNoticeDto {
   @IsArray()
   @IsOptional()
   @IsString({ each: true })
-  approvedGroups?: string[]; 
+  approvedGroups?: string[];
+
+  @IsString() 
+  @IsOptional() 
+  whatsappId?: string; 
 }

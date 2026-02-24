@@ -2,8 +2,7 @@ import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from
 
 @Injectable()
 export class ApiKeyGuard implements CanActivate {
-  // THIS IS YOUR SECRET KEY - change it to whatever you want!
-  private readonly SECRET_KEY = 'my-super-secret-123'; 
+  private readonly SECRET_KEY = '1234567890abcdef'; 
 
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest();

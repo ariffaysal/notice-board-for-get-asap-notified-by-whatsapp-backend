@@ -3,41 +3,36 @@ import { AppModule } from './app.module';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 
 async function bootstrap() {
-  // 1. Initialize the NestJS Application
   const app = await NestFactory.create(AppModule);
 
-  // 2. Security & Proxy Settings
-  // trust proxy is important for the Throttler to see real IPs
   app.getHttpAdapter().getInstance().set('trust proxy', 1); 
 
-  // 3. Enable CORS
-  // Restricted to '*' for now, but better to use 'http://localhost:3000' later
   app.enableCors({
     origin: '*', 
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
   });
 
-  // 4. Swagger API Documentation Setup
-  const config = new DocumentBuilder()
-    .setTitle('Client Notice API')
-    .setDescription('API for WhatsApp Sync and Notice Management')
-    .setVersion('1.0')
-    .addTag('notices')
-    .build();
+
+const config = new DocumentBuilder()
+  .setTitle('Client Notice API')
+  .setDescription('API for WhatsApp Sync and Notice Management')
+  .setVersion('1.0')
+  .addTag('notices')
+
+  .addApiKey({ type: 'apiKey', name: 'x-api-key', in: 'header' }, 'x-api-key')
+  .build();
+
     
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
 
-  // 5. Start the Server (ONLY CALL THIS ONCE)
   await app.listen(3001);
 
-  // 6. Vital Console Logs
   console.log(`🚀 API is running on: http://localhost:3001/notices`);
   console.log(`📖 Documentation available at: http://localhost:3001/api`);
 }
 bootstrap();
-
 /*
 
 You have built a three-tier synchronization system. 

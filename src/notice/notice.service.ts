@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Between, Repository } from 'typeorm';
+import { Between, Repository, In, Not } from 'typeorm';
 import { Notice } from './entities/notice.entity';
 import { CreateNoticeDto } from './dto/create-notice.dto';
 import { WhatsappService } from '../whatsapp.service'; 
@@ -16,10 +16,6 @@ export class NoticeService {
     private readonly whatsappService: WhatsappService, 
   ) {}
 
-  /**
-   * Captures messages coming FROM WhatsApp into the DB.
-   * Logic: Used by the WhatsApp webhooks/listeners.
-   */
   async saveFromWhatsApp(dto: { title: string; content: string; groupName: string; whatsappId: string }) {
     const notice = this.noticeRepo.create({
       name: dto.title,      
@@ -31,17 +27,16 @@ export class NoticeService {
     return await this.noticeRepo.save(notice);
   }
 
-  /**
-   * Primary method for creating notices via Browser, API, or Terminal.
-   * FIXED: Destructuring matches the CreateNoticeDto (name/message).
-   */
   async create(createNoticeDto: CreateNoticeDto): Promise<Notice> {
-    // 🔑 Destructure using names that match your DTO exactly
-    const { name, message, groupName, category, approvedGroups, whatsappId } = createNoticeDto;
+    // 🔑 FIX: Accept 'name' OR 'title', and 'message' OR 'content'
+    // This prevents the 'null value' database error if the frontend names differ.
+    const name = createNoticeDto.name || (createNoticeDto as any).title;
+    const message = createNoticeDto.message || (createNoticeDto as any).content;
+    const { groupName, category, approvedGroups, whatsappId } = createNoticeDto;
 
     const noticeInstance = this.noticeRepo.create({
-      name: name,             // Mapping DTO 'name' to Entity 'name'
-      message: message,       // Mapping DTO 'message' to Entity 'message'
+      name: name,             
+      message: message,       
       groupName: groupName,
       whatsappId: whatsappId, 
       category: category || 'General'
@@ -54,14 +49,11 @@ export class NoticeService {
     const whatsappMessage = `*NEW NOTICE ALERT*\n\n*Title:* ${savedNotice.name}\n*Content:* ${savedNotice.message}`;
 
     // --- WHATSAPP ROUTING LOGIC ---
-
-    // 1. Priority: Direct Send via WhatsApp ID (Precise for API/Terminal/Replies)
     if (whatsappId) {
       await this.whatsappService.sendMessageToId(whatsappId, whatsappMessage)
         .then(() => console.log(`✅ Sent to JID: ${whatsappId}`))
         .catch(e => console.error(`❌ JID Send Error:`, e.message));
     } 
-    // 2. Browser Broadcast: Send to all approved group names
     else if (groupName === 'All Groups' && approvedGroups && approvedGroups.length > 0) {
       approvedGroups.forEach(targetGroupName => {
         this.whatsappService.sendMessageToGroup(targetGroupName, whatsappMessage)
@@ -69,7 +61,6 @@ export class NoticeService {
           .catch(e => console.error(`❌ Broadcast Failed for ${targetGroupName}:`, e.message));
       });
     } 
-    // 3. Browser Individual: Send to a single group name
     else if (groupName && groupName !== 'All Groups') {
       this.whatsappService.sendMessageToGroup(groupName, whatsappMessage)
         .then(() => console.log(`✅ Sent to Group Name: ${groupName}`))
@@ -80,9 +71,7 @@ export class NoticeService {
   }
 
   // --- SETTINGS MANAGEMENT ---
-
   async updateApprovedGroups(groups: string[]) {
-    // Accessing Setting entity via the manager
     let setting = await this.noticeRepo.manager.findOne(Setting, { where: { key: 'approved_groups' } });
     
     if (!setting) {
@@ -100,18 +89,26 @@ export class NoticeService {
   }
 
   // --- QUERY & DELETE METHODS ---
-
   async findAll() {
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
-
     const endOfDay = new Date();
     endOfDay.setHours(23, 59, 59, 999);
 
+    const approvedGroups = await this.getApprovedGroups();
+
     return await this.noticeRepo.find({
-      where: {
-        createdAt: Between(startOfDay, endOfDay),
-      },
+      where: [
+        {
+          createdAt: Between(startOfDay, endOfDay),
+          category: Not('WhatsApp'), 
+        },
+        {
+          createdAt: Between(startOfDay, endOfDay),
+          groupName: In(approvedGroups.length > 0 ? approvedGroups : ['__NONE__']),
+          category: 'WhatsApp',
+        },
+      ],
       order: {
         createdAt: 'DESC',
       },

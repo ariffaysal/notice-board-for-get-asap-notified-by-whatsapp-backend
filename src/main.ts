@@ -84,3 +84,19 @@ Invoke-RestMethod -Uri "http://localhost:3001/notices" -Method Post -Body $body 
 
 
 */
+
+
+
+
+/*
+{
+  "name": "Success Test",
+  "message": "TypeScript errors are gone!",
+  "groupName": "A",
+  whatsappId = "120363423778038121@g.us"
+
+}
+
+
+
+*/

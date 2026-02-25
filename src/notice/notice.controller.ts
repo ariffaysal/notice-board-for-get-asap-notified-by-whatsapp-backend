@@ -8,7 +8,7 @@ import { ApiKeyGuard } from '../api-key.guard';
 
 @ApiTags('notices') 
 @Controller('notices')
-@ApiSecurity('x-api-key')
+@ApiSecurity('x-api-key').
 @SkipThrottle()
 export class NoticeController {
   

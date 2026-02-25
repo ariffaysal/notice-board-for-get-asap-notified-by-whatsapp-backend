@@ -28,11 +28,11 @@ async function bootstrap() {
   SwaggerModule.setup('api', app, document);
 
   
-  const port = process.env.PORT || 3001;
+  const port = process.env.PORT || 3001; //http://localhost:3001/notices
   await app.listen(port);
 
   console.log(`🚀 API is running on port: ${port}`);
-  console.log(`📖 Documentation available at: http://localhost:${port}/api`);
+  console.log(`📖 Documentation available at: http://localhost:${port}/api`);  //http://localhost:3001/api
 }
 bootstrap();
 /*

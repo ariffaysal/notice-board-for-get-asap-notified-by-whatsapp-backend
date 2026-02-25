@@ -100,17 +100,17 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  /**
-   * NEW: Send message via Unique WhatsApp ID (Terminal/API usage)
-   */
+  
+   // NEW: Send message via Unique WhatsApp ID (Terminal/API usage)
+   
   async sendMessageToId(jid: string, message: string) {
     if (!this.isReady) throw new Error("WhatsApp client not ready");
     return await this.client.sendMessage(jid, message);
   }
 
-  /**
-   * EXISTING: Send message via Group Name (Browser usage)
-   */
+  
+   //EXISTING: Send message via Group Name (Browser usage)
+  
   async sendMessageToGroup(groupName: string, message: string) {
     if (!this.isReady) return;
 
@@ -129,9 +129,6 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  /**
-   * EXISTING: Get all group names for dropdowns
-   */
   async getAllGroups(): Promise<string[]> {
     if (!this.isReady) return [];
     const chats = await this.client.getChats();

@@ -31,7 +31,7 @@ export class NoticeService {
 
 
  async create(createNoticeDto: CreateNoticeDto): Promise<Notice> {
-    // 🔑 Keeps your fallback for name/title and message/content
+ 
     const name = createNoticeDto.name || (createNoticeDto as any).title;
     const message = createNoticeDto.message || (createNoticeDto as any).content;
     const { groupName, category, whatsappId } = createNoticeDto;
@@ -44,23 +44,22 @@ export class NoticeService {
       category: category || 'General'
     });
 
-    // Save to Database
+    
     const savedNotice = await this.noticeRepo.save(noticeInstance);
 
     // Prepare WhatsApp Message
     const whatsappMessage = `*NEW NOTICE ALERT*\n\n*Title:* ${savedNotice.name}\n*Content:* ${savedNotice.message}`;
 
-    // --- WHATSAPP ROUTING LOGIC ---
     
-    // 1. Priority: Direct Send via WhatsApp ID
+
     if (whatsappId) {
       await this.whatsappService.sendMessageToId(whatsappId, whatsappMessage)
         .then(() => console.log(`✅ Sent to JID: ${whatsappId}`))
         .catch(e => console.error(`❌ JID Send Error:`, e.message));
     } 
-    // 2. Broadcast Logic: FIXED to fetch from DB settings
+    // fetch from DB settings
     else if (groupName === 'All Groups') {
-      // 🔑 Pull the actual approved groups from your settings table
+      // Pull the actual approved groups from settings table
       const groupsFromDb = await this.getApprovedGroups();
       
       if (groupsFromDb && groupsFromDb.length > 0) {
@@ -74,7 +73,7 @@ export class NoticeService {
         console.warn('⚠️ All Groups selected, but the Approved Groups list in settings is empty.');
       }
     } 
-    // 3. Individual Group Send
+    //  Individual Group Send
     else if (groupName && groupName !== 'All Groups') {
       this.whatsappService.sendMessageToGroup(groupName, whatsappMessage)
         .then(() => console.log(`✅ Sent to Group Name: ${groupName}`))

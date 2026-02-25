@@ -11,7 +11,7 @@ import { ApiKeyGuard } from '../api-key.guard';
 @SkipThrottle()
 export class NoticeController {
   
-  constructor(private readonly noticeService: NoticeService) {}
+  constructor(private readonly noticeService: NoticeService) {} 
 
   @Post()
   @UseGuards(ApiKeyGuard) 

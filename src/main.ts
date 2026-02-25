@@ -5,7 +5,9 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  
   app.getHttpAdapter().getInstance().set('trust proxy', 1); 
+
 
   app.enableCors({
     origin: '*', 
@@ -13,24 +15,24 @@ async function bootstrap() {
     credentials: true,
   });
 
-
-const config = new DocumentBuilder()
-  .setTitle('Client Notice API')
-  .setDescription('API for WhatsApp Sync and Notice Management')
-  .setVersion('1.0')
-  .addTag('notices')
-
-  .addApiKey({ type: 'apiKey', name: 'x-api-key', in: 'header' }, 'x-api-key')
-  .build();
-
+ 
+  const config = new DocumentBuilder()
+    .setTitle('Client Notice API')
+    .setDescription('API for WhatsApp Sync and Notice Management')
+    .setVersion('1.0')
+    .addTag('notices')
+    .addApiKey({ type: 'apiKey', name: 'x-api-key', in: 'header' }, 'x-api-key')
+    .build();
     
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
 
-  await app.listen(3001);
+  
+  const port = process.env.PORT || 3001;
+  await app.listen(port);
 
-  console.log(`🚀 API is running on: http://localhost:3001/notices`);
-  console.log(`📖 Documentation available at: http://localhost:3001/api`);
+  console.log(`🚀 API is running on port: ${port}`);
+  console.log(`📖 Documentation available at: http://localhost:${port}/api`);
 }
 bootstrap();
 /*

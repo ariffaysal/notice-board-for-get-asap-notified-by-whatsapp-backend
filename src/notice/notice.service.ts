@@ -18,14 +18,14 @@ export class NoticeService {
 
   /**
    * Captures messages coming FROM WhatsApp into the DB.
-   * Includes whatsappId to ensure we can reply to the specific group later.
+   * Logic: Used by the WhatsApp webhooks/listeners.
    */
   async saveFromWhatsApp(dto: { title: string; content: string; groupName: string; whatsappId: string }) {
     const notice = this.noticeRepo.create({
-      name: dto.title,       
+      name: dto.title,      
       message: dto.content,  
       groupName: dto.groupName, 
-      whatsappId: dto.whatsappId, // Store the @g.us ID
+      whatsappId: dto.whatsappId,
       category: 'WhatsApp',
     });
     return await this.noticeRepo.save(notice);
@@ -33,19 +33,24 @@ export class NoticeService {
 
   /**
    * Primary method for creating notices via Browser, API, or Terminal.
+   * FIXED: Destructuring matches the CreateNoticeDto (name/message).
    */
   async create(createNoticeDto: CreateNoticeDto): Promise<Notice> {
-    const { title, content, groupName, category, approvedGroups, whatsappId } = createNoticeDto;
+    // 🔑 Destructure using names that match your DTO exactly
+    const { name, message, groupName, category, approvedGroups, whatsappId } = createNoticeDto;
 
     const noticeInstance = this.noticeRepo.create({
-      name: title,
-      message: content,
+      name: name,             // Mapping DTO 'name' to Entity 'name'
+      message: message,       // Mapping DTO 'message' to Entity 'message'
       groupName: groupName,
-      whatsappId: whatsappId, // Store ID if provided by API/Terminal
+      whatsappId: whatsappId, 
       category: category || 'General'
     });
 
+    // Save to Database
     const savedNotice = await this.noticeRepo.save(noticeInstance);
+
+    // Prepare WhatsApp Message
     const whatsappMessage = `*NEW NOTICE ALERT*\n\n*Title:* ${savedNotice.name}\n*Content:* ${savedNotice.message}`;
 
     // --- WHATSAPP ROUTING LOGIC ---
@@ -77,6 +82,7 @@ export class NoticeService {
   // --- SETTINGS MANAGEMENT ---
 
   async updateApprovedGroups(groups: string[]) {
+    // Accessing Setting entity via the manager
     let setting = await this.noticeRepo.manager.findOne(Setting, { where: { key: 'approved_groups' } });
     
     if (!setting) {

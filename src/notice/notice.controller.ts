@@ -1,19 +1,17 @@
-import { Controller, Get, Post, Body, Param, Delete, ParseIntPipe, UseGuards } from '@nestjs/common'; // Added UseGuards here
+import { Controller, Get, Post, Body, Param, Delete, ParseIntPipe, UseGuards } from '@nestjs/common';
 import { NoticeService } from './notice.service';
 import { CreateNoticeDto } from './dto/create-notice.dto';
-import { ApiTags, ApiOperation, ApiSecurity} from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiSecurity } from '@nestjs/swagger'; 
 import { SkipThrottle } from '@nestjs/throttler';
 import { ApiKeyGuard } from '../api-key.guard';
 
-
-@ApiTags('notices') 
+@ApiTags('notices')
+@ApiSecurity('x-api-key') 
 @Controller('notices')
-@ApiSecurity('x-api-key').
 @SkipThrottle()
 export class NoticeController {
   
   constructor(private readonly noticeService: NoticeService) {}
-
 
   @Post()
   @UseGuards(ApiKeyGuard) 

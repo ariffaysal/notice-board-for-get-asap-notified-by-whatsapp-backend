@@ -3,11 +3,11 @@ import { IsString, IsOptional, IsArray, IsNotEmpty } from 'class-validator';
 export class CreateNoticeDto {
   @IsString()
   @IsNotEmpty()
-  title: string;
+  name: string;
 
   @IsString()
   @IsNotEmpty()
-  content: string;
+  message: string;
 
   @IsString()
   @IsNotEmpty()

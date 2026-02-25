@@ -27,12 +27,14 @@ export class NoticeService {
     return await this.noticeRepo.save(notice);
   }
 
-  async create(createNoticeDto: CreateNoticeDto): Promise<Notice> {
-    // 🔑 FIX: Accept 'name' OR 'title', and 'message' OR 'content'
-    // This prevents the 'null value' database error if the frontend names differ.
+
+
+
+ async create(createNoticeDto: CreateNoticeDto): Promise<Notice> {
+    // 🔑 Keeps your fallback for name/title and message/content
     const name = createNoticeDto.name || (createNoticeDto as any).title;
     const message = createNoticeDto.message || (createNoticeDto as any).content;
-    const { groupName, category, approvedGroups, whatsappId } = createNoticeDto;
+    const { groupName, category, whatsappId } = createNoticeDto;
 
     const noticeInstance = this.noticeRepo.create({
       name: name,             
@@ -49,18 +51,30 @@ export class NoticeService {
     const whatsappMessage = `*NEW NOTICE ALERT*\n\n*Title:* ${savedNotice.name}\n*Content:* ${savedNotice.message}`;
 
     // --- WHATSAPP ROUTING LOGIC ---
+    
+    // 1. Priority: Direct Send via WhatsApp ID
     if (whatsappId) {
       await this.whatsappService.sendMessageToId(whatsappId, whatsappMessage)
         .then(() => console.log(`✅ Sent to JID: ${whatsappId}`))
         .catch(e => console.error(`❌ JID Send Error:`, e.message));
     } 
-    else if (groupName === 'All Groups' && approvedGroups && approvedGroups.length > 0) {
-      approvedGroups.forEach(targetGroupName => {
-        this.whatsappService.sendMessageToGroup(targetGroupName, whatsappMessage)
-          .then(() => console.log(`✅ Broadcasted to: ${targetGroupName}`))
-          .catch(e => console.error(`❌ Broadcast Failed for ${targetGroupName}:`, e.message));
-      });
+    // 2. Broadcast Logic: FIXED to fetch from DB settings
+    else if (groupName === 'All Groups') {
+      // 🔑 Pull the actual approved groups from your settings table
+      const groupsFromDb = await this.getApprovedGroups();
+      
+      if (groupsFromDb && groupsFromDb.length > 0) {
+        console.log(`📢 Broadcasting to ${groupsFromDb.length} groups: ${groupsFromDb.join(', ')}`);
+        groupsFromDb.forEach(targetGroupName => {
+          this.whatsappService.sendMessageToGroup(targetGroupName, whatsappMessage)
+            .then(() => console.log(`✅ Broadcasted to: ${targetGroupName}`))
+            .catch(e => console.error(`❌ Broadcast Failed for ${targetGroupName}:`, e.message));
+        });
+      } else {
+        console.warn('⚠️ All Groups selected, but the Approved Groups list in settings is empty.');
+      }
     } 
+    // 3. Individual Group Send
     else if (groupName && groupName !== 'All Groups') {
       this.whatsappService.sendMessageToGroup(groupName, whatsappMessage)
         .then(() => console.log(`✅ Sent to Group Name: ${groupName}`))
@@ -69,6 +83,12 @@ export class NoticeService {
 
     return savedNotice;
   }
+
+
+
+
+
+
 
   // --- SETTINGS MANAGEMENT ---
   async updateApprovedGroups(groups: string[]) {
